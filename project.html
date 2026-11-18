@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpinSync - 5th Floor Laundry Command Center</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.01); }
+        }
+        .animate-pulse-slow { animation: pulse-slow 3s infinite ease-in-out; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 9999px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]">
+
+    <!-- Top Navigation Bar -->
+    <header class="w-full border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-md px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-xl shadow-lg shadow-emerald-900/30">
+                🧺
+            </div>
+            <div>
+                <h1 class="text-base font-extrabold tracking-tight flex items-center gap-2">
+                    SpinSync <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold">PG Hub</span>
+                </h1>
+                <p class="text-xs text-slate-400">5th Floor Terminal • Washing Machine #1</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button type="button" onclick="openMaintenanceModal()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-500/30 hover:bg-amber-900/50 px-3.5 py-1.5 rounded-full transition cursor-pointer shadow-sm">
+                <span>⚠️ Report Issue</span>
+                <span id="issueBadgeCount" class="hidden bg-amber-500 text-slate-950 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">0</span>
+            </button>
+            <span class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-3.5 py-1.5 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live & Secured
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Full-Screen Grid Container -->
+    <main class="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+        <!-- Left / Center Column (Spans 2 columns on large screens) -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Primary Status Board -->
+            <div class="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 md:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[380px]">
+                <!-- Ambient Glow -->
+                <div id="glowBg" class="absolute -top-32 -right-32 w-64 h-64 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none transition-all duration-500"></div>
+
+                <!-- Status Card Top Section -->
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Current Machine State</span>
+                        <h2 id="statusTitle" class="text-3xl md:text-4xl font-extrabold text-emerald-400 mt-1 tracking-tight">Machine is Available</h2>
+                        <p id="statusSubtitle" class="text-sm text-slate-300 mt-1">No active cycles. Claim with a 4-digit PIN to start!</p>
+                    </div>
+                    <div id="statusIconContainer" class="w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-3xl md:text-4xl shadow-xl shadow-emerald-900/20">
+                        🟢
+                    </div>
+                </div>
+
+                <!-- Active Details Area (Hidden when free) -->
+                <div id="activeDetails" class="hidden my-6 py-6 border-y border-slate-800/80 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Currently Occupied By</p>
+                            <button type="button" onclick="openFlagModalForActive()" class="bg-rose-950/60 hover:bg-rose-900/70 border border-rose-500/50 text-rose-400 text-[10px] font-bold px-2 py-0.5 rounded-full transition cursor-pointer flex items-center gap-1">
+                                🚩 Flag User
+                            </button>
+                        </div>
+                        <p id="userNameDisplay" class="text-xl font-bold text-white mt-1"></p>
+                        <p id="cycleEndClock" class="text-xs text-slate-400 mt-0.5"></p>
+                    </div>
+                    <div>
+                        <p id="timerLabel" class="text-xs font-bold uppercase tracking-wider text-slate-400">Estimated Time Remaining</p>
+                        <div class="text-4xl md:text-5xl font-black tracking-tight text-amber-400 font-mono mt-1" id="countdownTimer">--:--</div>
+                    </div>
+                </div>
+
+                <!-- Action Controls inside Board -->
+                <div id="actionContainer" class="mt-6 flex flex-col sm:flex-row gap-3">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <!-- Sequential Appointment Booking Queue -->
+            <div class="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <span>📅</span> Upcoming Slot Bookings
+                            <span id="queueCountBadge" class="text-xs bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2.5 py-0.5 rounded-full font-semibold">0 Waiting</span>
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Reserve your slot in order. (Flag button is available on the active machine user above when running).</p>
+                    </div>
+                    <button type="button" onclick="openModal('book')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition shadow-lg shadow-indigo-900/30 flex items-center gap-1.5 cursor-pointer shrink-0">
+                        <span>+ Book Next Slot</span>
+                    </button>
+                </div>
+
+                <!-- Queue List Container -->
+                <div id="queueListContainer" class="space-y-3">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Quick Floor Stats, Issue Log & No-Show Flags -->
+        <div class="space-y-6 flex flex-col justify-start">
+            <!-- Next Available Window Card -->
+            <div class="bg-gradient-to-br from-indigo-950/40 to-slate-900/80 backdrop-blur-xl border border-indigo-500/25 rounded-3xl p-6 shadow-xl">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Next Open Slot Window</span>
+                <div id="nextAvailableTime" class="text-2xl font-extrabold text-white mt-1">Available Right Now</div>
+                <p id="nextAvailableSub" class="text-xs text-slate-400 mt-1">Zero wait time — jump straight in.</p>
+            </div>
+
+            <!-- Reported Issues Log (Non-blocking data log) -->
+            <div class="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                        <span>🛠️</span> Reported Issue Log
+                    </h3>
+                    <button type="button" onclick="openMaintenanceModal()" class="text-[11px] text-amber-400 hover:underline font-semibold cursor-pointer">+ Log Issue</button>
+                </div>
+                <div id="issueLogContainer" class="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <!-- Flagged Users Log -->
+            <div class="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                        <span>🚩</span> Flagged Users Log
+                    </h3>
+                    <span id="flagTotalBadge" class="text-[10px] bg-rose-500/15 text-rose-400 px-2 py-0.5 rounded-full font-bold">0 Flags</span>
+                </div>
+                <div id="noShowLogContainer" class="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <!-- Security & Etiquette Rules -->
+            <div class="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-xl">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                    <span>🛡️</span> Security & Queue Rules
+                </h3>
+                <ul class="space-y-3 text-xs text-slate-300">
+                    <li class="flex items-start gap-2.5">
+                        <span class="text-emerald-400 font-bold">01</span>
+                        <span><strong>4-Digit PIN Protection:</strong> Protects your active cycle and queue booking from accidental or malicious cancellation.</span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <span class="text-emerald-400 font-bold">02</span>
+                        <span><strong>10-Min Grace Period:</strong> Unclaimed clothes after 10 minutes automatically drop the PIN lock so the next student can start.</span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <span class="text-emerald-400 font-bold">03</span>
+                        <span><strong>Active User Flagging:</strong> Use the "Flag User" button on the active machine card if someone overstays or leaves clothes abandoned.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Claim / Book Slot Modal -->
+    <div id="claimModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 transition-all duration-300">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-8 shadow-2xl scale-95 transition-transform duration-300" id="modalBox">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 id="modalTitle" class="text-lg font-bold text-white">Start Washing Cycle</h3>
+                    <p id="modalSubtitle" class="text-xs text-slate-400 mt-0.5">Secure your session with a 4-digit PIN.</p>
+                </div>
+                <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-white text-sm font-bold w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            
+            <input type="hidden" id="modalMode" value="start">
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Your Name & Room No.</label>
+                    <input type="text" id="inputName" placeholder="e.g. Rahul (Room 502)" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">4-Digit Security PIN</label>
+                    <input type="password" inputmode="numeric" maxlength="4" id="inputPin" placeholder="e.g. 1234" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3.5 text-sm text-white font-mono tracking-widest focus:outline-none focus:border-emerald-500 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Select Duration</label>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <button type="button" onclick="setPreset(30, this)" class="duration-btn bg-slate-950 border border-slate-800 hover:border-emerald-500/50 py-3 rounded-2xl text-xs font-semibold text-slate-300 transition cursor-pointer">30m Quick</button>
+                        <button type="button" onclick="setPreset(45, this)" class="duration-btn bg-emerald-600/20 border border-emerald-500 text-emerald-400 py-3 rounded-2xl text-xs font-semibold transition cursor-pointer">45m Normal</button>
+                        <button type="button" onclick="setPreset(60, this)" class="duration-btn bg-slate-950 border border-slate-800 hover:border-emerald-500/50 py-3 rounded-2xl text-xs font-semibold text-slate-300 transition cursor-pointer">60m Heavy</button>
+                    </div>
+                    <input type="hidden" id="selectedDuration" value="45">
+                </div>
+
+                <!-- Estimated Window Preview Box -->
+                <div id="slotPreviewBox" class="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Estimated Slot Window</span>
+                        <span id="slotWindowText" class="text-sm font-bold text-indigo-400 mt-0.5 block">Calculating...</span>
+                    </div>
+                    <span class="text-xl">⏱️</span>
+                </div>
+            </div>
+
+            <div class="flex space-x-3 mt-8">
+                <button type="button" onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3.5 rounded-2xl text-xs transition cursor-pointer">Cancel</button>
+                <button type="button" id="modalSubmitBtn" onclick="handleModalSubmit()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 rounded-2xl text-xs transition shadow-lg shadow-emerald-900/30 cursor-pointer">Start Wash 🧺</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIN Verification Modal -->
+    <div id="pinModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl">
+            <h3 id="pinModalTitle" class="text-base font-bold text-white mb-1">Enter Owner PIN</h3>
+            <p id="pinModalDesc" class="text-xs text-slate-400 mb-4">Enter the 4-digit PIN set for this session to proceed.</p>
+            <input type="password" inputmode="numeric" maxlength="4" id="verifyPinInput" placeholder="••••" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-center text-lg text-white font-mono tracking-widest focus:outline-none focus:border-rose-500 mb-4">
+            <div class="flex gap-2">
+                <button type="button" onclick="closePinModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 rounded-xl text-xs cursor-pointer">Cancel</button>
+                <button type="button" onclick="confirmPinAction()" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-semibold py-3 rounded-xl text-xs shadow-lg shadow-rose-900/30 cursor-pointer">Verify & Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Issue Modal -->
+    <div id="maintenanceModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-8 shadow-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2"><span>⚠️</span> Report Machine Issue</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Logs the issue for the floor & warden without locking the machine.</p>
+                </div>
+                <button type="button" onclick="closeMaintenanceModal()" class="text-slate-400 hover:text-white text-sm font-bold w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Your Name & Room No.</label>
+                    <input type="text" id="maintReporter" placeholder="e.g. Aman (Room 508)" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Select Error / Issue Type</label>
+                    <select id="maintCode" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500 transition cursor-pointer">
+                        <option value="E20 — Water Drainage Slow/Error">E20 — Water Drainage Slow/Error</option>
+                        <option value="Drum Unbalanced / Loud Banging">Drum Unbalanced / Loud Banging</option>
+                        <option value="Door Hatch Sticky / Hard to Open">Door Hatch Sticky / Hard to Open</option>
+                        <option value="Low Water Pressure / Supply Issue">Low Water Pressure / Supply Issue</option>
+                        <option value="Minor Water Leak / Hose Issue">Minor Water Leak / Hose Issue</option>
+                        <option value="Other Observation">Other Observation</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Additional Details (Optional)</label>
+                    <input type="text" id="maintNotes" placeholder="e.g. Water dripping slightly near drain pipe" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500 transition">
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-8">
+                <button type="button" onclick="closeMaintenanceModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3.5 rounded-xl text-xs cursor-pointer">Cancel</button>
+                <button type="button" onclick="submitMaintenanceReport
